@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  db:
+    image: ghcr.io/${GITHUB_REPOSITORY}/db:latest
+    container_name: healthcheck-db
+    environment:
+      POSTGRES_DB: healthcheck
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY}/api:latest
+    container_name: healthcheck-api
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/healthcheck
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  client:
+    image: ghcr.io/${GITHUB_REPOSITORY}/client:latest
+    container_name: healthcheck-client
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  proxy:
+    image: ghcr.io/${GITHUB_REPOSITORY}/proxy:latest
+    container_name: healthcheck-proxy
+    ports:
+      - "80:80"
+    networks:
+      - frontend
+    volumes:
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+      - client
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+networks:
+  frontend:
+    name: healthcheck-frontend
+  backend:
+    name: healthcheck-backend
+
+volumes:
+  db_data:
+    name: healthcheck-db-data
+  nginx_logs:
+    name: healthcheck-nginx-logs
