@@ -78,9 +78,11 @@ services:
     depends_on:
       - api
       - monitor
+      - client
     networks:
       - frontend
       - backend
+    restart: unless-stopped
 
   monitor:
     build: ./monitor
@@ -90,6 +92,7 @@ services:
     networks:
       - frontend
       - backend
+    restart: unless-stopped
 
 networks:
   frontend:

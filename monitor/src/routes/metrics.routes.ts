@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { getMetrics } from '../services/metrics.service';
-import { logger } from '../utils/logger';
+import { getMetrics } from '../services/metrics.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

@@ -1,14 +1,21 @@
 import { Application, Request, Response } from 'express';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
+import fetch from 'node-fetch';
+
+interface ServiceHealthResponse {
+  status?: string;
+  message?: string;
+  [key: string]: any;
+}
 
 export const setupHealthRoutes = (app: Application) => {
   // 기본 헬스체크 엔드포인트
   app.get('/health', async (req: Request, res: Response) => {
     try {
       const services = {
-        api: await checkServiceHealth(process.env.API_URL || 'http://localhost:8000', 'API'),
-        client: await checkServiceHealth(process.env.CLIENT_URL || 'http://localhost:3000', 'Client'),
-        proxy: await checkServiceHealth(process.env.PROXY_URL || 'http://localhost:80', 'Proxy')
+        api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
+        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
+        proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
       const allHealthy = Object.values(services).every(service => service.status === 'healthy');
@@ -43,9 +50,9 @@ export const setupHealthRoutes = (app: Application) => {
   app.get('/health/details', async (req: Request, res: Response) => {
     try {
       const services = {
-        api: await checkServiceHealth(process.env.API_URL || 'http://localhost:8000', 'API'),
-        client: await checkServiceHealth(process.env.CLIENT_URL || 'http://localhost:3000', 'Client'),
-        proxy: await checkServiceHealth(process.env.PROXY_URL || 'http://localhost:80', 'Proxy')
+        api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
+        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
+        proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
       const systemInfo = {
@@ -77,24 +84,33 @@ export const setupHealthRoutes = (app: Application) => {
 async function checkServiceHealth(url: string, serviceName: string): Promise<{ status: string; responseTime: number; message?: string }> {
   const startTime = Date.now();
   try {
-    logger.info(`${serviceName} 헬스체크 시도 ��... (${url})`);
+    logger.info(`${serviceName} 헬스체크 시도 중... (${url})`);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5초 타임아웃
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(`${url}/health`, {
-      signal: controller.signal
+    const healthCheckUrl = `${url.replace(/\/$/, '')}/health`;
+    logger.info(`헬스���크 URL: ${healthCheckUrl}`);
+
+    const response = await fetch(healthCheckUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      },
+      timeout: 5000
     });
 
-    clearTimeout(timeout);
+    clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
     if (response.ok) {
-      logger.info(`${serviceName} 헬스체크 성공 (${responseTime}ms)`);
+      const data: ServiceHealthResponse = await response.json();
+      logger.info(`${serviceName} 헬스체크 성공 (${responseTime}ms)`, JSON.stringify(data));
       return {
-        status: 'healthy',
+        status: data.status === 'healthy' ? 'healthy' : 'unhealthy',
         responseTime,
-        message: '정상'
+        message: data.message || '정상'
       };
     } else {
       const message = `HTTP 상태 코드: ${response.status}`;

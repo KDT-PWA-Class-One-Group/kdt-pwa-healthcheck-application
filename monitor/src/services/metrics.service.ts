@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { register, collectDefaultMetrics, Counter, Histogram } from 'prom-client';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 // Prometheus 메트릭스 설정
 collectDefaultMetrics();
@@ -35,7 +35,7 @@ export const getMetrics = async () => {
   try {
     return await register.metrics();
   } catch (error) {
-    logger.error('메트릭스 조회 중 오�� 발생:', error);
+    logger.error('메트릭스 조회 중 오류 발생:', error);
     throw error;
   }
 };

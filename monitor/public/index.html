@@ -3,140 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>헬스체크 모니터링 대시보드</title>
+    <title>시스템 모니터링 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card h2 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .status-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-left: 8px; }
-        .status-healthy { background-color: #4caf50; }
-        .status-unhealthy { background-color: #f44336; }
-        .status-unreachable { background-color: #ff9800; }
-        .status-timeout { background-color: #9c27b0; }
-        .metric-value { font-size: 1.2em; font-weight: bold; }
-        .refresh-time { color: #666; font-size: 0.9em; text-align: right; margin-top: 20px; }
-        .service-item { border: 1px solid #eee; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
-        .service-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .service-name { font-weight: bold; }
-        .service-details { font-size: 0.9em; color: #666; }
-        .error-message { color: #f44336; font-size: 0.9em; margin-top: 5px; }
+        .status-healthy { color: #28a745; }
+        .status-unhealthy { color: #dc3545; }
+        .status-unreachable { color: #6c757d; }
+        .metric-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .loading {
+            opacity: 0.5;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>헬스체크 모니터링 대시보드</h1>
-        <div class="dashboard">
-            <div class="card" id="system-status">
-                <h2>시스템 상태</h2>
-                <div id="system-content"></div>
+    <div class="container mt-4">
+        <h1 class="mb-4">시스템 모니터링 대시보드</h1>
+
+        <div class="row">
+            <!-- 서비스 상태 -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">서비스 상태</h5>
+                    </div>
+                    <div class="card-body" id="services-status">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>API 서버:</span>
+                            <span id="api-status">확인 중...</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>클라이언트:</span>
+                            <span id="client-status">확인 중...</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>프록시:</span>
+                            <span id="proxy-status">확인 중...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card" id="services-status">
-                <h2>서비스 상태</h2>
-                <div id="services-content"></div>
-            </div>
-            <div class="card" id="metrics">
-                <h2>메트릭스</h2>
-                <div id="metrics-content"></div>
+
+            <!-- 시스템 리소스 -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">시스템 리소스</h5>
+                    </div>
+                    <div class="card-body" id="system-resources">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>메모리 사용량:</span>
+                            <span id="memory-usage">확인 중...</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>CPU 사용량:</span>
+                            <span id="cpu-usage">확인 중...</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>가동 시간:</span>
+                            <span id="uptime">확인 중...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="refresh-time" id="refresh-time"></div>
+
+        <!-- 메트릭스 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">실시간 메트릭스</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="metrics-container">
+                            <!-- 메트릭스가 여기에 동적으로 추가됩니다 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        const socket = io();
-        let lastUpdate = new Date();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Socket.IO 연결 설정
+            const socket = io('/', {
+                path: '/socket.io'
+            });
 
-        function formatBytes(bytes) {
-            const units = ['B', 'KB', 'MB', 'GB'];
-            let value = bytes;
-            let unitIndex = 0;
-            while (value >= 1024 && unitIndex < units.length - 1) {
-                value /= 1024;
-                unitIndex++;
+            // 연결 상태 처리
+            socket.on('connect', () => {
+                console.log('Socket.IO 서버에 연결되었습니다.');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Socket.IO 연결 오류:', error);
+            });
+
+            // 데이터 업데이트 함수들
+            function updateServiceStatus(service, info) {
+                const element = document.getElementById(`${service}-status`);
+                if (!element) return;
+
+                const statusClass = `status-${info.status}`;
+                element.className = statusClass;
+                element.textContent = `${info.status} (${info.responseTime}ms)${info.message ? ` - ${info.message}` : ''}`;
             }
-            return `${value.toFixed(2)} ${units[unitIndex]}`;
-        }
 
-        function formatUptime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            return `${days}일 ${hours}시간 ${minutes}분`;
-        }
+            function updateSystemResources(data) {
+                if (!data || !data.system) {
+                    console.error('시스템 데이터가 유효하지 않습니다:', data);
+                    return;
+                }
 
-        function getStatusClass(status) {
-            switch (status) {
-                case 'healthy': return 'status-healthy';
-                case 'unhealthy': return 'status-unhealthy';
-                case 'unreachable': return 'status-unreachable';
-                case 'timeout': return 'status-timeout';
-                default: return 'status-unreachable';
+                const { memory, cpu, uptime } = data.system;
+
+                try {
+                    // 메모리 사용량 표시 (MB 단위로 변환)
+                    const memoryUsed = Math.round(memory.heapUsed / 1024 / 1024);
+                    const memoryTotal = Math.round(memory.heapTotal / 1024 / 1024);
+                    document.getElementById('memory-usage').textContent =
+                        `${memoryUsed}MB / ${memoryTotal}MB`;
+
+                    // CPU 사용량 표시
+                    const cpuUsage = Math.round((cpu.user + cpu.system) / 1000);
+                    document.getElementById('cpu-usage').textContent =
+                        `${cpuUsage}ms`;
+
+                    // 가동 시간 표시
+                    const uptimeHours = Math.floor(uptime / 3600);
+                    const uptimeMinutes = Math.floor((uptime % 3600) / 60);
+                    document.getElementById('uptime').textContent =
+                        `${uptimeHours}시간 ${uptimeMinutes}분`;
+                } catch (error) {
+                    console.error('시스템 리소스 업데이트 중 오류:', error);
+                }
             }
-        }
 
-        function updateDashboard() {
-            fetch('/api/monitor')
-                .then(response => response.json())
-                .then(data => {
-                    // 시스템 상태 업데이트
-                    const systemHtml = `
-                        <p><strong>업타임:</strong> <span class="metric-value">${formatUptime(data.system.uptime)}</span></p>
-                        <p><strong>메모리 사용량:</strong></p>
-                        <ul>
-                            <li>힙 사용: <span class="metric-value">${formatBytes(data.system.memory.heapUsed)}</span></li>
-                            <li>힙 총량: <span class="metric-value">${formatBytes(data.system.memory.heapTotal)}</span></li>
-                            <li>외부 메모리: <span class="metric-value">${formatBytes(data.system.memory.external)}</span></li>
-                        </ul>
+            function updateMetrics(metrics) {
+                const container = document.getElementById('metrics-container');
+                if (!container) return;
+
+                container.innerHTML = ''; // 기존 메트릭스 초기화
+
+                try {
+                    if (Array.isArray(metrics)) {
+                        metrics.forEach(metric => {
+                            const metricElement = document.createElement('div');
+                            metricElement.className = 'metric-card';
+                            metricElement.innerHTML = `
+                                <h6>${metric.name}</h6>
+                                <p class="text-muted">${metric.help}</p>
+                                <p class="mb-0">값: ${metric.values[0]?.value || 'N/A'}</p>
+                            `;
+                            container.appendChild(metricElement);
+                        });
+                    } else {
+                        const metricElement = document.createElement('div');
+                        metricElement.className = 'metric-card';
+                        metricElement.innerHTML = `
+                            <p class="text-muted">메트릭스 데이터를 불러오는 중...</p>
+                        `;
+                        container.appendChild(metricElement);
+                    }
+                } catch (error) {
+                    console.error('메트릭스 업데이트 중 오류:', error);
+                    container.innerHTML = `
+                        <div class="error-message">
+                            메트릭스 데이터를 표시하는 중 오류가 발생했습니다.
+                        </div>
                     `;
-                    document.getElementById('system-content').innerHTML = systemHtml;
+                }
+            }
+
+            // 실시간 데이터 수신
+            socket.on('metrics', (data) => {
+                console.log('메트릭스 데이터 수신:', data);
+                updateMetrics(data);
+            });
+
+            // 초기 데이터 로드 및 주기적 업데이트
+            async function fetchData() {
+                try {
+                    const response = await fetch('/api/monitor');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
 
                     // 서비스 상태 업데이트
-                    const servicesHtml = Object.entries(data.services)
-                        .map(([name, info]) => `
-                            <div class="service-item">
-                                <div class="service-header">
-                                    <span class="service-name">${name}</span>
-                                    <span class="status-indicator ${getStatusClass(info.status)}"></span>
-                                </div>
-                                <div class="service-details">
-                                    <div>상태: ${info.status}</div>
-                                    <div>응답 시간: ${info.responseTime}ms</div>
-                                    ${info.message ? `<div class="error-message">메시지: ${info.message}</div>` : ''}
-                                </div>
-                            </div>
-                        `).join('');
-                    document.getElementById('services-content').innerHTML = servicesHtml;
+                    if (data.services) {
+                        Object.entries(data.services).forEach(([service, info]) => {
+                            updateServiceStatus(service, info);
+                        });
+                    }
 
-                    // 메트릭스 업데이트
-                    const metricsHtml = `
-                        <p><strong>HTTP 요청 수:</strong> <span class="metric-value">${data.metrics.http_requests_total || 0}</span></p>
-                        <p><strong>평균 응답 시간:</strong> <span class="metric-value">${data.metrics.http_request_duration_seconds?.sum || 0}s</span></p>
-                    `;
-                    document.getElementById('metrics-content').innerHTML = metricsHtml;
+                    // 시스템 리소스 업데이트
+                    updateSystemResources(data);
+                } catch (error) {
+                    console.error('데이터 로드 중 오류:', error);
+                    // 에러 상세 로깅
+                    console.error('상세 에러:', error.message);
 
-                    // 마지막 업데이트 시간
-                    lastUpdate = new Date();
-                    document.getElementById('refresh-time').textContent = `마지막 업데이트: ${lastUpdate.toLocaleString()}`;
-                })
-                .catch(error => {
-                    console.error('데이터 조회 오류:', error);
-                    document.getElementById('refresh-time').textContent = `업데이트 실패: ${error.message}`;
-                });
-        }
+                    // 에러 상태 표시
+                    document.querySelectorAll('[id$="-status"]').forEach(element => {
+                        element.className = 'status-unreachable';
+                        element.textContent = '연결 오류';
+                    });
+                }
+            }
 
-        // 초기 데이터 로드
-        updateDashboard();
+            // 페이지 로드 시 초기 데이터 로드
+            fetchData();
 
-        // Socket.IO 이벤트 리스너
-        socket.on('metrics', () => {
-            updateDashboard();
+            // 10초마다 데이터 업데이트
+            setInterval(fetchData, 10000);
         });
-
-        // 30초마다 수동 새로고침
-        setInterval(updateDashboard, 30000);
     </script>
 </body>
 </html>
