@@ -14,7 +14,7 @@ export const setupHealthRoutes = (app: Application) => {
     try {
       const services = {
         api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
-        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
+        client: await checkServiceHealth('http://healthcheck-client:3000/api', 'Client'),
         proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
@@ -51,7 +51,7 @@ export const setupHealthRoutes = (app: Application) => {
     try {
       const services = {
         api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
-        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
+        client: await checkServiceHealth('http://healthcheck-client:3000/api', 'Client'),
         proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
@@ -90,7 +90,7 @@ async function checkServiceHealth(url: string, serviceName: string): Promise<{ s
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const healthCheckUrl = `${url.replace(/\/$/, '')}/health`;
-    logger.info(`헬스���크 URL: ${healthCheckUrl}`);
+    logger.info(`헬스체크 URL: ${healthCheckUrl}`);
 
     const response = await fetch(healthCheckUrl, {
       method: 'GET',
