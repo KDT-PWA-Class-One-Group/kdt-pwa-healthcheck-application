@@ -5,30 +5,36 @@
 ## 시스템 구성
 
 - **프론트엔드**: Next.js 기반 웹 클라이언트
-- **백엔드**: Python 기반 REST API 서버
+- **백엔드**: Python (FastAPI) 기반 REST API 서버
 - **데이터베이스**: PostgreSQL
 - **프록시**: Nginx (JSON 로깅 지원)
+
+## 기술 스택
+
+- **프론트엔드**: Next.js
+- **백엔드**:
+  - Python 3.10
+  - FastAPI 0.115.x
+  - SQLAlchemy 2.0.x
+  - Pydantic 2.5.x
+- **데이터베이스**: PostgreSQL
+- **프록시**: Nginx
 
 ## 사전 요구사항
 
 - Docker
-- Docker Compose
+- Docker Compose v2 이상
 - GitHub 계정 (이미지 다운로드용)
 
 ## 설치 및 실행 방법
 
-1. GitHub 패키지 레지스트리 로그인:
+1. 네트워크 생성:
 ```bash
-export GITHUB_REPOSITORY="your-username/your-repo"
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker network create healthcheck-frontend
+docker network create healthcheck-backend
 ```
 
-2. 환경 변수 설정:
-```bash
-export GITHUB_REPOSITORY="your-username/your-repo"
-```
-
-3. 서비스 실행:
+2. 서비스 실행:
 ```bash
 docker-compose up -d
 ```
@@ -36,34 +42,65 @@ docker-compose up -d
 ## 서비스 접속 정보
 
 - 웹 클라이언트: http://localhost
-- API 서버: http://localhost/api
+- API 서버: http://localhost:8000
+- API 문서: http://localhost:8000/docs
 - 데이터베이스: localhost:5432
+  - DB명: healthcheck
+  - 사용자: user
+  - 비밀번호: password
+
+## 상태 확인
+
+각 서비스의 상태는 다음 명령어로 확인할 수 있습니다:
+```bash
+docker-compose ps
+```
+
+헬스체크 엔드포인트:
+- API 서버: http://localhost:8000/health
+- 클라이언트: http://localhost:3000/health
+- 프록시: http://localhost/health
 
 ## 로그 확인
 
-JSON 형식의 로그는 다음 위치에서 확인할 수 있습니다:
-
-- 일반 접근 로그: `/var/log/nginx/access.log`
-- 클라이언트 접근 로그: `/var/log/nginx/client_access.log`
-- API 접�� 로그: `/var/log/nginx/api_access.log`
-
-로그 확인 명령어:
+각 서비스의 로그는 다음 명령어로 확인할 수 있습니다:
 ```bash
-docker-compose logs proxy
+# 전체 로그
+docker-compose logs
+
+# 특정 서비스 로그
+docker-compose logs [service_name]  # api, client, db, proxy
 ```
 
 ## 개발 환경 설정
 
 로컬 개발 환경에서 실행하려면 다음과 같이 설정합니다:
 
-1. 레포지토리 클론:
+1. API 서비스 빌드 및 실행:
 ```bash
-git clone https://github.com/your-username/your-repo.git
+docker-compose build api
+docker-compose up -d
 ```
 
-2. 로컬 빌드 및 실행:
+2. 변경사항 확인:
 ```bash
-docker-compose -f docker-compose.dev.yml up --build
+docker-compose logs -f api
+```
+
+## 문제 해결
+
+1. 네트워크 오류 발생 시:
+```bash
+docker-compose down
+docker network prune
+docker network create healthcheck-frontend
+docker network create healthcheck-backend
+docker-compose up -d
+```
+
+2. 컨테이너 재시작:
+```bash
+docker-compose restart [service_name]
 ```
 
 ## 라이선스
