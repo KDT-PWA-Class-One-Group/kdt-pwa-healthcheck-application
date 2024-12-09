@@ -1,3 +1,4 @@
+version: '3'
 services:
   db:
     image: ghcr.io/kdt-pwa-class-one-group/healthcheck-db:latest
@@ -70,33 +71,31 @@ services:
     restart: unless-stopped
 
   proxy:
-    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-proxy:latest
-    platform: ${TARGETPLATFORM:-linux/amd64}
+    build: ./proxy
     container_name: healthcheck-proxy
     ports:
       - "80:80"
+    depends_on:
+      - api
+      - monitor
     networks:
       - frontend
-    volumes:
-      - nginx_logs:/var/log/nginx
-    depends_on:
-      client:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    restart: unless-stopped
+      - backend
+
+  monitor:
+    build: ./monitor
+    container_name: healthcheck-monitor
+    ports:
+      - "3001:3001"
+    networks:
+      - frontend
+      - backend
 
 networks:
   frontend:
     name: healthcheck-frontend
-    external: true
   backend:
     name: healthcheck-backend
-    external: true
 
 volumes:
   db_data:

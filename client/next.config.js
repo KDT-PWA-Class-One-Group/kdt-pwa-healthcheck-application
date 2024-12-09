@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: '/monitor',
   output: 'standalone',
   async rewrites() {
     return {
