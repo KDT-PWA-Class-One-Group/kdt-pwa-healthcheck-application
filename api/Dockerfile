@@ -1,11 +1,10 @@
-FROM --platform=$BUILDPLATFORM python:3.10-slim AS builder
+FROM --platform=$BUILDPLATFORM python:3.10-slim-bullseye AS builder
 
 WORKDIR /app
 
-# 시스템 패키지 설치
+# 빌드 시 필요한 최소한의 시스템 패키지만 설치
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    curl \
     gcc \
     python3-dev \
     libpq-dev \
@@ -16,14 +15,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 실행 스테이지
-FROM --platform=$TARGETPLATFORM python:3.10-slim
+FROM --platform=$TARGETPLATFORM python:3.10-slim-bullseye
 
 WORKDIR /app
 
-# 런타임 의존성만 설치
+# 런타임에 필요한 최소한의 패키지만 설치
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    curl \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,12 +31,16 @@ COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/pytho
 # 소스 코드 복사
 COPY . .
 
-# Python 경로에 현재 디렉토리 추가
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
+# Python 설정
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# 포트 설정
+# 비루트 사용자 설정
+RUN useradd -m -r -u 1001 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
-# 실행
 CMD ["python", "run.py"]

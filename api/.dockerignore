@@ -1,10 +1,50 @@
-venv/
+# Python 관련
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-.env
+venv/
+env/
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 테스트 관련
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+
+# IDE 관련
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 로그 및 임시 파일
 *.log
-.git/
+logs/
+tmp/
+temp/
+
+# 버전 관리
+.git
 .gitignore
+.gitattributes
+
+# 도커 관련
+Dockerfile
+.dockerignore
+docker-compose*
+
+# 환경 설정
+.env
+.env.*
+*.env
+.env.local
