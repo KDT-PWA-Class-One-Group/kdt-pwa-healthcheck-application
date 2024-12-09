@@ -5,33 +5,37 @@ WORKDIR /app
 # 패키지 파일 복사
 COPY package.json yarn.lock ./
 
-# 의존성 설치
-RUN yarn install --frozen-lockfile
+# 프로덕션 의존성만 설치
+RUN yarn install --frozen-lockfile --production
 
 # 소스 코드 복사
 COPY . .
 
-# Next.js 애플리케이션 빌드
+# Next.js 애플리케이션 빌드 (standalone 모드)
+ENV NEXT_TELEMETRY_DISABLED 1
 RUN yarn build
 
 # 실행 스테이지
-FROM --platform=$TARGETPLATFORM node:22.11.0-alpine
+FROM --platform=$TARGETPLATFORM node:22.11.0-alpine AS runner
 
 WORKDIR /app
 
-# 빌드된 파일과 필요한 파일들만 복사
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# 환경 변수 설정
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# 포트 설정
+# standalone 출력만 복사
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+USER nextjs
+
 EXPOSE 3000
 
-# 프로덕션 모드로 실행
-CMD ["yarn", "start"]
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]
