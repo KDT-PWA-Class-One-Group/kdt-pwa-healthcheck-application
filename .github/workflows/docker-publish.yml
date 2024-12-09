@@ -54,3 +54,10 @@ jobs:
           context: ./db
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository }}/db:latest
+
+      - name: Build and push Monitor image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitor
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/monitor:latest
