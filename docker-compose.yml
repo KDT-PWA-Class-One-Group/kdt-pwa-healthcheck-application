@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: ghcr.io/${GITHUB_REPOSITORY}/db:latest
+    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-db:latest
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-db
     environment:
@@ -22,7 +22,7 @@ services:
       retries: 5
 
   api:
-    image: ghcr.io/${GITHUB_REPOSITORY}/api:latest
+    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-api:latest
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-api
     environment:
@@ -40,15 +40,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     restart: always
 
   client:
-    image: ghcr.io/${GITHUB_REPOSITORY}/client:latest
+    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-client:latest
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-client
     environment:
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:8000
     ports:
       - "3000:3000"
     networks:
@@ -57,15 +58,21 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 20s
       retries: 5
-      start_period: 10s
-    restart: always
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    restart: unless-stopped
 
   proxy:
-    image: ghcr.io/${GITHUB_REPOSITORY}/proxy:latest
+    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-proxy:latest
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-proxy
     ports:
@@ -75,14 +82,15 @@ services:
     volumes:
       - nginx_logs:/var/log/nginx
     depends_on:
-      - api
-      - client
+      client:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 5
-    restart: always
+      start_period: 30s
+    restart: unless-stopped
 
 networks:
   frontend:
