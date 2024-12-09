@@ -14,24 +14,40 @@ ORG_NAME="kdt-pwa-class-one-group"
 IMAGE_PREFIX="ghcr.io/${ORG_NAME}"
 VERSION="latest"
 
+# Docker Buildx 설정
+docker buildx create --use
+docker buildx inspect --bootstrap
+
 # Client 이미지 빌드 및 푸시
 echo "Building and pushing client image..."
-docker build -t $IMAGE_PREFIX/healthcheck-client:$VERSION ./client
-docker push $IMAGE_PREFIX/healthcheck-client:$VERSION
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t $IMAGE_PREFIX/healthcheck-client:$VERSION \
+  --push \
+  ./client
 
 # API 이미지 빌드 및 푸시
 echo "Building and pushing API image..."
-docker build -t $IMAGE_PREFIX/healthcheck-api:$VERSION ./api
-docker push $IMAGE_PREFIX/healthcheck-api:$VERSION
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t $IMAGE_PREFIX/healthcheck-api:$VERSION \
+  --push \
+  ./api
 
 # DB 이미지 빌드 및 푸시
 echo "Building and pushing DB image..."
-docker build -t $IMAGE_PREFIX/healthcheck-db:$VERSION ./db
-docker push $IMAGE_PREFIX/healthcheck-db:$VERSION
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t $IMAGE_PREFIX/healthcheck-db:$VERSION \
+  --push \
+  ./db
 
 # Proxy 이미지 빌드 및 푸시
 echo "Building and pushing proxy image..."
-docker build -t $IMAGE_PREFIX/healthcheck-proxy:$VERSION ./proxy
-docker push $IMAGE_PREFIX/healthcheck-proxy:$VERSION
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t $IMAGE_PREFIX/healthcheck-proxy:$VERSION \
+  --push \
+  ./proxy
 
-echo "All images have been built and pushed successfully!" 
+echo "모든 이미지가 성공적으로 빌드되고 푸시되었습니다!" 

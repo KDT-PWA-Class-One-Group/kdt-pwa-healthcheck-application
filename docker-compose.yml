@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: ghcr.io/${GITHUB_REPOSITORY}/db:latest
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-db
     environment:
       POSTGRES_DB: healthcheck
@@ -22,6 +23,7 @@ services:
 
   api:
     image: ghcr.io/${GITHUB_REPOSITORY}/api:latest
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-api
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/healthcheck
@@ -43,9 +45,10 @@ services:
 
   client:
     image: ghcr.io/${GITHUB_REPOSITORY}/client:latest
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-client
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
     ports:
       - "3000:3000"
     networks:
@@ -63,6 +66,7 @@ services:
 
   proxy:
     image: ghcr.io/${GITHUB_REPOSITORY}/proxy:latest
+    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-proxy
     ports:
       - "80:80"
