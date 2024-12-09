@@ -11,12 +11,15 @@ RUN yarn install
 # 소스 코드 복사
 COPY . .
 
+# Next.js 애플리케이션 빌드
+RUN yarn build
+
 # 환경 변수 설정
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # 포트 설정
 EXPOSE 3000
 
-# 개발 모드로 실행
-CMD ["yarn", "dev"]
+# 프로덕션 모드로 실행
+CMD ["yarn", "start"]
