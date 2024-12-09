@@ -50,4 +50,12 @@ docker buildx build \
   --push \
   ./proxy
 
-echo "모든 이미지가 성공적으로 빌드되고 푸시되었습니다!" 
+# Monitor 이미지 빌드 및 푸시
+echo "Building and pushing monitor image..."
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t $IMAGE_PREFIX/healthcheck-monitor:$VERSION \
+  --push \
+  ./monitor
+
+echo "모든 이미지가 성공적으로 빌드되고 푸시되었습니다!"
