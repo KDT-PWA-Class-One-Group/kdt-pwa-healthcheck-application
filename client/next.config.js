@@ -2,12 +2,19 @@
 const nextConfig = {
   output: 'standalone',
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://healthcheck-api:8000/:path*',
-      },
-    ]
+    return {
+      beforeFiles: [
+        {
+          source: '/api/:path*',
+          destination: 'http://healthcheck-api:8000/:path*',
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    }
+  },
+  experimental: {
+    appDir: true,
   },
 }
 

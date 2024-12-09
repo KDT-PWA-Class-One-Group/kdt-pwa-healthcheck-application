@@ -1,0 +1,26 @@
+{
+    "success": true,
+    "message": "시스템 전체 상태",
+    "data": {
+        "component": "system",
+        "status": "healthy",
+        "version": "1.0.0",
+        "components": {
+            "proxy": {
+                "status": "up",
+                "memory": {
+                    "total": "",
+                    "free": "",
+                    "used": ""
+                },
+                "uptime": "",
+                "connections": {
+                    "active": 0,
+                    "reading": 0,
+                    "writing": 0,
+                    "waiting": 0
+                }
+            }
+        }
+    }
+}

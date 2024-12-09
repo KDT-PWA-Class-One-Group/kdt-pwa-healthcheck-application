@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
-from datetime import date
+from typing import List, Dict, Any
+from datetime import date, datetime
 import logging
 import time
+import psutil
+import os
 
 from . import models, schemas, database
 
@@ -35,6 +37,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 헬스체크 응답 모델
+class HealthCheckResponse(schemas.ResponseBase[Dict[str, Any]]):
+    pass
 
 # 전역 예외 핸들러
 @app.exception_handler(HTTPException)
@@ -70,26 +76,56 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 # 헬스체크 엔드포인트
-@app.get("/", response_model=schemas.HealthCheckResponse)
-@app.get("/health", response_model=schemas.HealthCheckResponse)
+@app.get("/health", response_model=HealthCheckResponse)
 async def health_check():
+    start_time = time.time()
     try:
         # 데이터베이스 연결 테스트
         db = next(database.get_db())
+        db_start = time.time()
         db.execute(text("SELECT 1"))
+        db_response_time = time.time() - db_start
+
+        # 시스템 정보 수집
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        cpu_percent = process.cpu_percent(interval=0.1)
+
         return {
             "success": True,
             "message": "API 서버와 데이터베이스가 정상 작동중입니다.",
             "data": {
-                "api_status": "healthy",
-                "database_status": "connected"
+                "component": "api",
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "version": app.version,
+                "uptime_seconds": int(time.time() - start_time),
+                "database": {
+                    "status": "connected",
+                    "response_time_ms": round(db_response_time * 1000, 2)
+                },
+                "system": {
+                    "cpu_percent": round(cpu_percent, 1),
+                    "memory_rss_mb": round(memory_info.rss / 1024 / 1024, 1),
+                    "memory_vms_mb": round(memory_info.vms / 1024 / 1024, 1),
+                    "thread_count": process.num_threads()
+                }
             }
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(
+        return JSONResponse(
             status_code=500,
-            detail="데이터베이스 연결에 실패했습니다."
+            content={
+                "success": False,
+                "message": "서비스 상태 확인 중 오류가 발생했습니다.",
+                "data": {
+                    "component": "api",
+                    "status": "unhealthy",
+                    "timestamp": datetime.now().isoformat(),
+                    "error": str(e)
+                }
+            }
         )
 
 # 검진 기록 목록 조회
@@ -124,7 +160,7 @@ def read_health_record(record_id: int, db: Session = Depends(database.get_db)):
         )
     return {
         "success": True,
-        "message": "검진 기록을 성공적으로 조회했습니다.",
+        "message": "검진 기록을 성공���으로 조회했습니다.",
         "data": record
     }
 

@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "message": "프록시 서비스 상태",
+  "data": {
+    "proxy_status": "healthy"
+  }
+}
