@@ -3,12 +3,17 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import path from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { setupMetricsRoutes } from './routes/metrics.routes.js';
 import { setupHealthRoutes } from './routes/health.routes.js';
 import { setupMonitorRoutes } from './routes/monitor.routes.js';
 import { logger } from './utils/logger.js';
 import { setupMetricsCollection } from './services/metrics.service.js';
+
+// ESM에서 경로 처리
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const publicPath = join(currentDir, '../public');
 
 dotenv.config();
 
@@ -20,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 
 // 정적 파일 제공
-app.use(express.static(path.join(process.cwd(), 'public')));
+app.use(express.static(publicPath));
 
 // Socket.IO 설정
 const io = new Server(httpServer, {

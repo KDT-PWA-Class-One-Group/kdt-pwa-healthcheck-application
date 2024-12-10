@@ -15,7 +15,7 @@ const nextConfig = {
     }
   },
   experimental: {
-    appDir: true,
+    // appDir 옵션 제거
   },
 }
 

@@ -1,14 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { getMetrics } from '../services/metrics.service.js';
 import { logger } from '../utils/logger.js';
-import path from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 
 interface ServiceHealthResponse {
-  status?: string;
-  message?: string;
-  [key: string]: any;
+  status: string;
+  message: string;
+  timestamp?: number;
 }
+
+// ESM에서 경로 처리
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const publicPath = join(currentDir, '../../public/index.html');
 
 export const setupMonitorRoutes = (app: Router) => {
   // 모니터링 데이터 API
@@ -52,9 +57,9 @@ export const setupMonitorRoutes = (app: Router) => {
     }
   });
 
-  // 메시보드 UI 제공
+  // 대시보드 UI 제공
   app.get('/monitor', (req: Request, res: Response) => {
-    res.sendFile(path.join(process.cwd(), 'public/index.html'));
+    res.sendFile(publicPath);
   });
 };
 
@@ -82,7 +87,7 @@ async function checkServiceHealth(url: string, serviceName: string): Promise<{ s
     const responseTime = Date.now() - startTime;
 
     if (response.ok) {
-      const data: ServiceHealthResponse = await response.json();
+      const data = await response.json() as ServiceHealthResponse;
       logger.info(`${serviceName} 헬스체크 성공 (${responseTime}ms)`, JSON.stringify(data));
       return {
         status: data.status === 'healthy' ? 'healthy' : 'unhealthy',

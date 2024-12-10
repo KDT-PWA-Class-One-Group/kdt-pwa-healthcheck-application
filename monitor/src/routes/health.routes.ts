@@ -14,7 +14,7 @@ export const setupHealthRoutes = (app: Application) => {
     try {
       const services = {
         api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
-        client: await checkServiceHealth('http://healthcheck-client:3000/api', 'Client'),
+        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
         proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
@@ -51,7 +51,7 @@ export const setupHealthRoutes = (app: Application) => {
     try {
       const services = {
         api: await checkServiceHealth('http://healthcheck-api:8000', 'API'),
-        client: await checkServiceHealth('http://healthcheck-client:3000/api', 'Client'),
+        client: await checkServiceHealth('http://healthcheck-client:3000', 'Client'),
         proxy: await checkServiceHealth('http://healthcheck-proxy:80', 'Proxy')
       };
 
@@ -81,7 +81,7 @@ export const setupHealthRoutes = (app: Application) => {
   });
 };
 
-async function checkServiceHealth(url: string, serviceName: string): Promise<{ status: string; responseTime: number; message?: string }> {
+async function checkServiceHealth(url: string, serviceName: string) {
   const startTime = Date.now();
   try {
     logger.info(`${serviceName} 헬스체크 시도 중... (${url})`);
@@ -89,7 +89,9 @@ async function checkServiceHealth(url: string, serviceName: string): Promise<{ s
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const healthCheckUrl = `${url.replace(/\/$/, '')}/health`;
+    const healthCheckUrl = serviceName === 'Client'
+      ? `${url}/api/health`  // 클라이언트는 /api/health 사용
+      : `${url}/health`;     // 다른 서비스는 /health 사용
     logger.info(`헬스체크 URL: ${healthCheckUrl}`);
 
     const response = await fetch(healthCheckUrl, {
@@ -97,20 +99,24 @@ async function checkServiceHealth(url: string, serviceName: string): Promise<{ s
       signal: controller.signal,
       headers: {
         'Accept': 'application/json'
-      },
-      timeout: 5000
+      }
     });
 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
     if (response.ok) {
-      const data: ServiceHealthResponse = await response.json();
+      interface HealthResponse {
+        status: string;
+        message: string;
+      }
+
+      const data = await response.json() as HealthResponse;
       logger.info(`${serviceName} 헬스체크 성공 (${responseTime}ms)`, JSON.stringify(data));
       return {
-        status: data.status === 'healthy' ? 'healthy' : 'unhealthy',
+        status: data.status,
         responseTime,
-        message: data.message || '정상'
+        message: data.message
       };
     } else {
       const message = `HTTP 상태 코드: ${response.status}`;
@@ -123,22 +129,10 @@ async function checkServiceHealth(url: string, serviceName: string): Promise<{ s
     }
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    const message = error instanceof Error ? error.message : '알 수 없는 오류';
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      logger.error(`${serviceName} 헬스체크 타임아웃`);
-      return {
-        status: 'timeout',
-        responseTime,
-        message: '응답 시간 초과'
-      };
-    }
-
-    logger.error(`${serviceName} 헬스체크 실패:`, error);
     return {
       status: 'unreachable',
       responseTime,
-      message
+      message: error instanceof Error ? error.message : '알 수 없는 오류'
     };
   }
 }

@@ -1,7 +1,6 @@
-version: '3'
 services:
   db:
-    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-db:latest
+    image: postgres:14
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-db
     environment:
@@ -43,7 +42,7 @@ services:
     restart: always
 
   client:
-    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-client:latest
+    build: ./client
     platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-client
     environment:
