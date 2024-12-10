@@ -12,6 +12,12 @@ RUN yarn install --frozen-lockfile
 # 소스 코드 복사
 COPY . .
 
+# 로그 디렉토리 생성
+RUN mkdir -p /app/logs
+
+# 로그 디렉토리 비루트 사용자로 소유자 변경
+RUN chown node:node /app/logs
+
 # TypeScript 빌드
 RUN yarn build
 
