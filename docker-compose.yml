@@ -82,6 +82,8 @@ services:
     networks:
       - frontend
       - backend
+    volumes:
+      - nginx_logs:/var/log/nginx
     restart: unless-stopped
 
   monitor:
@@ -92,6 +94,8 @@ services:
     networks:
       - frontend
       - backend
+    volumes:
+      - monitor_logs:/app/logs
     restart: unless-stopped
 
 networks:
@@ -105,3 +109,5 @@ volumes:
     name: healthcheck-db-data
   nginx_logs:
     name: healthcheck-nginx-logs
+  monitor_logs:
+    name: healthcheck-monitor-logs
