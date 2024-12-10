@@ -5,19 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Dict, Any
 from datetime import date, datetime
-import logging
-import time
-import psutil
-import os
 
 from . import models, schemas, database
-
-# 로거 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 # 데이터베이스 초기화
 models.Base.metadata.create_all(bind=database.engine)
@@ -25,22 +14,17 @@ models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI(
     title="건강검진 API",
     description="건강검진 시스템을 위한 REST API",
-    version="1.0.0",
-    root_path=""
+    version="1.0.0"
 )
 
 # CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 헬스체크 응답 모델
-class HealthCheckResponse(schemas.ResponseBase[Dict[str, Any]]):
-    pass
 
 # 전역 예외 핸들러
 @app.exception_handler(HTTPException)
@@ -56,7 +40,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unexpected error: {str(exc)}")
     return JSONResponse(
         status_code=500,
         content={
@@ -66,19 +49,21 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# 미들웨어 - 요청 처리 시간 측정
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
 # 헬스체크 엔드포인트
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+# 메트릭스 엔드포인트
+@app.get("/metrics")
+def get_metrics():
+    return {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "database": {
+            "status": "connected" if database.engine else "disconnected"
+        }
+    }
 
 # 검진 기록 목록 조회
 @app.get("/health-records", response_model=schemas.HealthRecordListResponse)
@@ -95,7 +80,6 @@ def read_health_records(
             "data": records
         }
     except Exception as e:
-        logger.error(f"Error in read_health_records: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="검진 기록 조회 중 오류가 발생했습니다."
@@ -116,7 +100,7 @@ def read_health_record(record_id: int, db: Session = Depends(database.get_db)):
         "data": record
     }
 
-# 검진 기록 생성
+# 검진 기록 성
 @app.post("/health-records", response_model=schemas.HealthRecordResponse)
 def create_health_record(
     record: schemas.HealthRecordCreate,
@@ -134,7 +118,6 @@ def create_health_record(
         }
     except Exception as e:
         db.rollback()
-        logger.error(f"Error in create_health_record: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="검진 기록 생성 중 오류가 발생했습니다."
@@ -167,7 +150,6 @@ def update_health_record(
         }
     except Exception as e:
         db.rollback()
-        logger.error(f"Error in update_health_record: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="검진 기록 수정 중 오류가 발생했습니다."
@@ -193,7 +175,6 @@ def delete_health_record(record_id: int, db: Session = Depends(database.get_db))
         }
     except Exception as e:
         db.rollback()
-        logger.error(f"Error in delete_health_record: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="검진 기록 삭제 중 오류가 발생했습니다."

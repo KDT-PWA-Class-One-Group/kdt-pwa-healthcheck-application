@@ -89,9 +89,12 @@ async function checkServiceHealth(url: string, serviceName: string) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const healthCheckUrl = serviceName === 'Client'
-      ? `${url}/api/health`  // 클라이언트는 /api/health 사용
-      : `${url}/health`;     // 다른 서비스는 /health 사용
+    let healthCheckUrl;
+    if (serviceName === 'Client' && process.env.CLIENT_URL) {
+      healthCheckUrl = process.env.CLIENT_URL;  // 환경 변수에서 클라이언트 헬스체크 URL 사용
+    } else {
+      healthCheckUrl = `${url}/health`;  // 다른 서비스는 기본 /health 사용
+    }
     logger.info(`헬스체크 URL: ${healthCheckUrl}`);
 
     const response = await fetch(healthCheckUrl, {
@@ -114,9 +117,9 @@ async function checkServiceHealth(url: string, serviceName: string) {
       const data = await response.json() as HealthResponse;
       logger.info(`${serviceName} 헬스체크 성공 (${responseTime}ms)`, JSON.stringify(data));
       return {
-        status: data.status,
+        status: data.status || 'healthy',  // status가 없으면 'healthy' 사용
         responseTime,
-        message: data.message
+        message: data.message || '정상'     // message가 없으면 '정상' 사용
       };
     } else {
       const message = `HTTP 상태 코드: ${response.status}`;

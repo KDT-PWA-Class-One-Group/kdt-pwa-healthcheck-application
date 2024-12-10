@@ -36,6 +36,3 @@ class HealthRecordResponse(ResponseBase[HealthRecord]):
 
 class HealthRecordListResponse(ResponseBase[List[HealthRecord]]):
     pass
-
-class HealthCheckResponse(ResponseBase[dict]):
-    pass

@@ -1,21 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/monitor',
   output: 'standalone',
   async rewrites() {
     return {
       beforeFiles: [
         {
           source: '/api/:path*',
-          destination: 'http://healthcheck-api:8000/:path*',
+          destination: 'http://api:8000/:path*',
+          has: [
+            {
+              type: 'query',
+              key: 'health',
+              value: undefined
+            }
+          ]
         },
       ],
-      afterFiles: [],
-      fallback: [],
     }
-  },
-  experimental: {
-    // appDir 옵션 제거
   },
 }
 

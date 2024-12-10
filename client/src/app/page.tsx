@@ -59,7 +59,6 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* 검진 결과 목록 */}
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:px-6">
             <h2 className="text-lg font-medium text-gray-900">검진 결과 목록</h2>
@@ -102,25 +101,6 @@ export default function Home() {
                 ))}
               </ul>
             )}
-          </div>
-        </div>
-
-        {/* API 상태 표시 */}
-        <div className="mt-6 bg-white shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900">시스템 상태</h3>
-            <div className="mt-2 max-w-xl text-sm text-gray-500">
-              <p>API 서버 연결 상태를 확인합니다.</p>
-            </div>
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={fetchHealthRecords}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                상로고침
-              </button>
-            </div>
           </div>
         </div>
       </main>

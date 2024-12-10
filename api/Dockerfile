@@ -2,14 +2,14 @@ FROM python:3.10-slim-bullseye
 
 WORKDIR /app
 
-# 시스템 패키지 설치
+# 필수 시스템 패키지만 설치
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
     libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    wget && \
+    rm -rf /var/lib/apt/lists/*
 
 # Python 설정
 ENV PYTHONPATH=/app \
