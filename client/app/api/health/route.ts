@@ -10,10 +10,11 @@ export async function GET() {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json({
       status: 'unhealthy',
-      error: error.message,
+      error: errorMessage,
     }, { status: 500 });
   }
 }

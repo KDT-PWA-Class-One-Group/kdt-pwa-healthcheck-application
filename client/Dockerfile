@@ -2,7 +2,7 @@ FROM --platform=$BUILDPLATFORM node:22.11.0-alpine AS builder
 
 WORKDIR /app
 
-# 빌드에 필요한 시스템 패키지만 설치
+# 빌드에 필요한 시스템 패키지 설치
 RUN apk add --no-cache libc6-compat
 
 # 패키지 파일 복사 및 의존성 설치 최적화
@@ -28,8 +28,9 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# 보안을 위한 비루트 사용자 설정
-RUN addgroup --system --gid 1001 nodejs && \
+# curl 설치 및 보안을 위한 비루트 사용자 설정
+RUN apk add --no-cache curl && \
+    addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs && \
     chmod 755 /app
 
@@ -44,3 +45,5 @@ USER nextjs
 EXPOSE 3000
 
 CMD ["node", "server.js"]
+
+# 헬스체크는 docker-compose.yml에서 관리하므로 제거

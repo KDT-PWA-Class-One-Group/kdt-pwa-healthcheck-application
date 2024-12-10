@@ -3,17 +3,11 @@ FROM postgres:14.6
 WORKDIR /docker-entrypoint-initdb.d
 
 # 초기화 스크립트 복사
-COPY ["./init.sql", "/docker-entrypoint-initdb.d/"]
+COPY /init/init.sql .
 
-# 설정 파일 복사
-COPY ["./postgresql.conf", "/etc/postgresql/postgresql.conf"]
-COPY ["./pg_hba.conf", "/etc/postgresql/pg_hba.conf"]
-
-# 환경 변수 설정
-ENV POSTGRES_DB=healthcheck \
-    POSTGRES_USER=user \
-    POSTGRES_PASSWORD=password \
-    POSTGRES_HOST_AUTH_METHOD=trust
+# 설정 파일 복사 (PostgreSQL이 시작될 때 자동으로 로드됨)
+COPY postgresql.conf /var/lib/postgresql/data/
+COPY pg_hba.conf /var/lib/postgresql/data/
 
 # 아키텍처별 성능 최적화 설정
 ENV POSTGRES_SHARED_BUFFERS=256MB \
@@ -27,5 +21,8 @@ ENV POSTGRES_SHARED_BUFFERS=256MB \
 # 포트 설정
 EXPOSE 5432
 
+# 권한 설정을 위한 스크립트 추가
+USER postgres
+
 # 설정 파일 사용
-CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+CMD ["postgres"]

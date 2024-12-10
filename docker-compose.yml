@@ -1,107 +1,127 @@
-version: '3'
 services:
-  db:
-    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-db:latest
-    platform: ${TARGETPLATFORM:-linux/amd64}
-    container_name: healthcheck-db
+  client:
+    container_name: healthcheck-client
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        BUILDPLATFORM: ${BUILDPLATFORM:-linux/arm64}
+        TARGETPLATFORM: ${TARGETPLATFORM:-linux/arm64}
+    platform: ${TARGETPLATFORM:-linux/arm64}
+    expose:
+      - "3000"
     environment:
-      POSTGRES_DB: healthcheck
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - NODE_ENV=production
+    depends_on:
+      api:
+        condition: service_healthy
     networks:
-      - backend
+      - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d healthcheck"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 20s
       retries: 5
+      start_period: 30s
+
 
   api:
-    build: ./api
-    platform: ${TARGETPLATFORM:-linux/amd64}
     container_name: healthcheck-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        BUILDPLATFORM: ${BUILDPLATFORM:-linux/arm64}
+    platform: ${TARGETPLATFORM:-linux/arm64}
+    expose:
+      - "8000"
     environment:
-      DATABASE_URL: postgresql://user:password@db:5432/healthcheck
-    ports:
-      - "8000:8000"
-    networks:
-      - backend
-      - frontend
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcheck
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: always
+      retries: 3
+      start_period: 10s
 
-  client:
-    image: ghcr.io/kdt-pwa-class-one-group/healthcheck-client:latest
-    platform: ${TARGETPLATFORM:-linux/amd64}
-    container_name: healthcheck-client
+  db:
+    container_name: healthcheck-db
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    platform: ${TARGETPLATFORM:-linux/arm64}
+    expose:
+      - "5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://api:8000
-    ports:
-      - "3000:3000"
+      - POSTGRES_DB=healthcheck
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST_AUTH_METHOD=md5
     networks:
-      - frontend
-    depends_on:
-      api:
-        condition: service_healthy
+      - app-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
-      interval: 30s
-      timeout: 20s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d healthcheck"]
+      interval: 5s
+      timeout: 5s
       retries: 5
-      start_period: 90s
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
-    restart: unless-stopped
+      start_period: 10s
 
   proxy:
-    build: ./proxy
     container_name: healthcheck-proxy
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    platform: ${TARGETPLATFORM:-linux/arm64}
     ports:
       - "80:80"
     depends_on:
-      - api
-      - monitor
-      - client
+      client:
+        condition: service_healthy
+      api:
+        condition: service_healthy
     networks:
-      - frontend
-      - backend
-    restart: unless-stopped
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   monitor:
-    build: ./monitor
     container_name: healthcheck-monitor
-    ports:
-      - "3001:3001"
+    build:
+      context: ./monitor
+      dockerfile: Dockerfile
+    platform: ${TARGETPLATFORM:-linux/arm64}
+    expose:
+      - "9090"
+    depends_on:
+      - api
+      - client
+      - db
+      - proxy
     networks:
-      - frontend
-      - backend
-    restart: unless-stopped
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
-  frontend:
-    name: healthcheck-frontend
-  backend:
-    name: healthcheck-backend
+  app-network:
+    name: healthcheck-network
+    driver: bridge
 
 volumes:
-  db_data:
+  db-data:
     name: healthcheck-db-data
-  nginx_logs:
-    name: healthcheck-nginx-logs
