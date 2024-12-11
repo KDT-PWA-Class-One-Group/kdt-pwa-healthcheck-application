@@ -1,9 +1,10 @@
+import React from 'react';
 import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "건강검진 시스템",
-  description: "정기 건강검진 관리 시스템",
+  title: "Health Check Application",
+  description: "A health check application for monitoring services",
 };
 
 export default function RootLayout({
@@ -12,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

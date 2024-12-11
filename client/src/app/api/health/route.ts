@@ -1,47 +1,20 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  console.log('[Health Check] 요청 시작 -', new Date().toISOString());
+export const dynamic = 'force-dynamic';
 
+export async function GET() {
   try {
-    const responseData = {
+    return NextResponse.json({
       status: 'healthy',
       timestamp: Date.now(),
       uptime: process.uptime(),
-      message: '정상',
-      environment: process.env.NODE_ENV,
-      path: '/api/health'
-    };
-
-    console.log('[Health Check] 응답 데이터:', JSON.stringify(responseData, null, 2));
-
-    return NextResponse.json(
-      responseData,
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
-  } catch (error) {
-    console.error('[Health Check] 오류 발생:', error);
-    console.error('[Health Check] 오류 상세:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
+      memory: process.memoryUsage(),
     });
-
-    return NextResponse.json(
-      {
-        status: 'unhealthy',
-        timestamp: Date.now(),
-        message: '오류 발생',
-        error: error.message
-      },
-      {
-        status: 500
-      }
-    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({
+      status: 'unhealthy',
+      error: errorMessage,
+    }, { status: 500 });
   }
 }

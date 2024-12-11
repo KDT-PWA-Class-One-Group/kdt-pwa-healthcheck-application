@@ -212,7 +212,7 @@ docker-compose restart db
 docker-compose logs db
 ```
 
-### 성능 최���화
+### 성능 최적화
 - 주기적인 로그 정리
 - 데이터베이스 인덱스 관리
 - 캐시 설정 최적화
@@ -257,3 +257,8 @@ MIT License
 
 - 이슈 트래커: GitHub Issues
 - 이메일: [이메일 주소]
+
+## 트러블슈팅
+
+### Next.js 앱 404 에러
+1. Next.js 빌드 확인:

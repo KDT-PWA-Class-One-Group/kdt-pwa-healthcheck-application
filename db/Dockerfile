@@ -3,11 +3,11 @@ FROM postgres:14.6
 WORKDIR /docker-entrypoint-initdb.d
 
 # 초기화 스크립트 복사
-COPY ["./init.sql", "/docker-entrypoint-initdb.d/"]
+COPY init.sql /docker-entrypoint-initdb.d/
 
 # 설정 파일 복사
-COPY ["./postgresql.conf", "/etc/postgresql/postgresql.conf"]
-COPY ["./pg_hba.conf", "/etc/postgresql/pg_hba.conf"]
+COPY postgresql.conf /etc/postgresql/postgresql.conf
+COPY pg_hba.conf /etc/postgresql/pg_hba.conf
 
 # 환경 변수 설정
 ENV POSTGRES_DB=healthcheck \
