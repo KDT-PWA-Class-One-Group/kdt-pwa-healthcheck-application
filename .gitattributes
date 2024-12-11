@@ -1,0 +1,21 @@
+# 기본적으로 자동 줄바꿈 감지 및 LF 사용
+* text=auto eol=lf
+
+# Windows 배치 파일은 CRLF 사용
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+*.sh text eol=lf
+
+# 도커 관련 파일은 LF 강제
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+*.conf text eol=lf
+
+# 바이너리 파일
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tar binary
+*.gz binary 
