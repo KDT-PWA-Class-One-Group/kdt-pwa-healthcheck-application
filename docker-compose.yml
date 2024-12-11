@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-common: &common-variables
   DOCKER_DEFAULT_PLATFORM: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
   DOCKER_REGISTRY: ${DOCKER_REGISTRY:-ghcr.io}
