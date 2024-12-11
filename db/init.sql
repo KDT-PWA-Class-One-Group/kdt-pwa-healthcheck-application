@@ -1,26 +1,19 @@
--- 데이터베이스 생성
-CREATE DATABASE healthcheck;
-
--- 사용자 생성 및 권한 부여
-CREATE USER "user" WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE healthcheck TO "user";
-
--- healthcheck 데이터베이스로 전환
-\c healthcheck
+-- 데이터베이스 생성은 이미 환경 변수로 처리됨
+-- CREATE DATABASE healthcheck;
+-- CREATE USER "user" WITH PASSWORD 'password';
+-- GRANT ALL PRIVILEGES ON DATABASE healthcheck TO "user";
 
 -- 확장 기능 활성화
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 기본 스키마 생성
-CREATE SCHEMA IF NOT EXISTS app;
-
 -- 기본 테이블 생성
-CREATE TABLE IF NOT EXISTS app.users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
+DROP TABLE IF EXISTS health_records;
+CREATE TABLE health_records (
+    id SERIAL PRIMARY KEY,
+    user_name VARCHAR(100) NOT NULL,
+    check_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    health_status VARCHAR(50) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -35,14 +28,18 @@ END;
 $$ language 'plpgsql';
 
 -- 트리거 생성
+DROP TRIGGER IF EXISTS update_health_records_updated_at ON health_records;
 CREATE TRIGGER update_health_records_updated_at
     BEFORE UPDATE ON health_records
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- 샘플 데이터 삽입
-INSERT INTO health_records (patient_name, exam_date, exam_type, result, height, weight, blood_pressure, blood_sugar)
-VALUES
-    ('홍길동', '2023-12-01', '정기검진', '정상', 175.5, 70.2, '120/80', 95),
-    ('김철수', '2023-12-02', '특별검진', '요주의', 168.3, 75.8, '130/85', 110),
-    ('이영희', '2023-12-03', '정기검진', '정상', 162.1, 55.4, '115/75', 88);
+-- 샘플 데이터 추가
+INSERT INTO health_records (user_name, health_status) VALUES
+    ('김철수', '정상'),
+    ('이영희', '재검진 필요'),
+    ('박지민', '정상');
+
+-- 추가 권한 부여
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO CURRENT_USER;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;

@@ -6,7 +6,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: '/api/:path*'
+        destination: 'http://api:8000/:path*'
       }
     ]
   },
@@ -32,7 +32,7 @@ const nextConfig = {
   },
   // 클라이언트 설정
   publicRuntimeConfig: {
-    apiUrl: '/api'
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   }
 }
 
