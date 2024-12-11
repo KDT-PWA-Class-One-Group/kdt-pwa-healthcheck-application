@@ -5,21 +5,11 @@ x-common: &common-variables
   IMAGE_TAG: ${IMAGE_TAG:-latest}
   TZ: ${TZ:-Asia/Seoul}
 
-x-common-deploy: &common-deploy
-  restart_policy:
-    condition: unless-stopped
-    max_attempts: 3
-  update_config:
-    parallelism: 1
-    delay: 10s
-  rollback_config:
-    parallelism: 1
-    delay: 10s
-
 services:
   db:
     image: postgres:14.6
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    restart: unless-stopped
     container_name: healthcheck-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -48,7 +38,6 @@ services:
       retries: 5
       start_period: 10s
     deploy:
-      <<: *common-deploy
       resources:
         limits:
           cpus: '1.0'
@@ -65,6 +54,7 @@ services:
         NODE_ENV: production
     image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/healthcheck-api:${IMAGE_TAG}
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    restart: unless-stopped
     container_name: healthcheck-api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -88,7 +78,6 @@ services:
       retries: 5
       start_period: 30s
     deploy:
-      <<: *common-deploy
       resources:
         limits:
           cpus: '1.0'
@@ -104,6 +93,7 @@ services:
         NODE_ENV: production
     image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/healthcheck-client:${IMAGE_TAG}
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    restart: unless-stopped
     container_name: healthcheck-client
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -130,7 +120,6 @@ services:
       retries: 3
       start_period: 20s
     deploy:
-      <<: *common-deploy
       resources:
         limits:
           cpus: '1.0'
@@ -142,6 +131,7 @@ services:
     build: ./proxy
     image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/healthcheck-proxy:${IMAGE_TAG}
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+    restart: unless-stopped
     container_name: healthcheck-proxy
     ports:
       - "${PROXY_PORT:-80}:80"
@@ -175,7 +165,6 @@ services:
       retries: 3
       start_period: 10s
     deploy:
-      <<: *common-deploy
       resources:
         limits:
           cpus: '0.5'
