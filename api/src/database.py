@@ -1,5 +1,6 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
 import os
 import time
 
@@ -8,6 +9,15 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://user:password@db:5432/healthcheck"
 )
+
+@event.listens_for(Engine, "connect")
+def set_search_path(dbapi_connection, connection_record):
+    existing_autocommit = dbapi_connection.autocommit
+    dbapi_connection.autocommit = True
+    cursor = dbapi_connection.cursor()
+    cursor.execute("SET search_path TO app, public")
+    cursor.close()
+    dbapi_connection.autocommit = existing_autocommit
 
 def wait_for_db(max_retries=5, retry_interval=5):
     for retry in range(max_retries):

@@ -7,7 +7,10 @@ x-common: &common-variables
 
 services:
   db:
-    image: postgres:14.6
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/healthcheck-db:${IMAGE_TAG}
     platform: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
     restart: unless-stopped
     container_name: healthcheck-db
@@ -26,7 +29,7 @@ services:
         target: /var/log/postgresql
         consistency: cached
       - type: bind
-        source: ./db/init.sql
+        source: ./db/init/init.sql
         target: /docker-entrypoint-initdb.d/init.sql
         read_only: true
     networks:

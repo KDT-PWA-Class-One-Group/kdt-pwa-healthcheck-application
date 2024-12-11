@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4
 from datetime import date, datetime
 from typing import Optional, Generic, TypeVar, List
 
@@ -12,7 +12,7 @@ class HealthRecordCreate(HealthRecordBase):
     pass
 
 class HealthRecord(HealthRecordBase):
-    id: int
+    id: UUID4
     check_date: date
     created_at: datetime
 
@@ -20,7 +20,8 @@ class HealthRecord(HealthRecordBase):
         from_attributes = True
         json_encoders = {
             datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat()
+            date: lambda v: v.isoformat(),
+            UUID4: lambda v: str(v)
         }
 
 class ResponseBase(BaseModel, Generic[T]):
